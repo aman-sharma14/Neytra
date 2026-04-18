@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>👓 Neytra - Smart Assistant</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 10px;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 2.5em;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      font-size: 1em;
+      opacity: 0.9;
+    }
+
+    /* Mode Display */
+    .mode-display {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      padding: 15px;
+      margin-bottom: 15px;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .mode-display h2 {
+      color: #667eea;
+      font-size: 1.3em;
+      margin-bottom: 5px;
+    }
+
+    .mode-display .mode-description {
+      color: #666;
+      font-size: 0.9em;
+    }
+
+    /* Video Container */
+    .video-container {
+      position: relative;
+      background: #000;
+      border-radius: 15px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    #cam {
+      width: 100%;
+      display: block;
+    }
+
+    .video-overlay {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 15px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ff4444;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.active {
+      background: #44ff44;
+    }
+
+    .video-overlay span {
+      color: white;
+      font-size: 0.9em;
+      font-weight: 600;
+    }
+
+    /* Output Display */
+    #output {
+      background: white;
+      border-radius: 15px;
+      padding: 15px;
+      margin-bottom: 15px;
+      min-height: 100px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    #output strong {
+      color: #667eea;
+    }
+
+    /* Controls */
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .controls button {
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: white;
+      color: #667eea;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .controls button:active {
+      transform: translateY(2px);
+    }
+
+    .controls button.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    /* Voice Section */
+    .voice-section {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .voice-trigger-label {
+      color: #667eea;
+      font-weight: 600;
+      margin-bottom: 15px;
+      font-size: 1.1em;
+    }
+
+    #micBtn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 15px;
+    }
+
+    #micBtn svg {
+      width: 35px;
+      height: 35px;
+      fill: white;
+    }
+
+    #micBtn:hover {
+      transform: scale(1.05);
+    }
+
+    #micBtn:active {
+      transform: scale(0.95);
+    }
+
+    #micBtn.listening {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      animation: pulse 1.5s infinite;
+    }
+
+    .voice-feedback {
+      min-height: 30px;
+      color: #666;
+      font-size: 0.95em;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #667eea;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .header h1 {
+        font-size: 2em;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <h1>👓 Neytra</h1>
+    <p>Agentic AI Assistant</p>
+  </div>
+
+  <!-- Mode Display -->
+  <div class="mode-display">
+    <h2 id="currentMode">SCAN MODE</h2>
+    <p class="mode-description" id="modeDescription">Standard object detection every 10 seconds</p>
+  </div>
+
+  <!-- Video Container -->
+  <div class="video-container">
+    <video id="cam" autoplay playsinline muted></video>
+    <div class="video-overlay">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Disconnected</span>
+    </div>
+  </div>
+
+  <!-- Output Display -->
+  <div id="output">
+    <strong>Status:</strong> Waiting for input...
+  </div>
+
+  <!-- Control Buttons -->
+  <div class="controls">
+    <button id="toggleBtn">Start Scan Mode</button>
+    <button id="analyzeBtn">Analyze Scene</button>
+  </div>
+
+  <!-- Voice Input Section -->
+  <div class="voice-section">
+    <div class="voice-trigger-label">Press to Give Voice Command</div>
+    <button id="micBtn" aria-label="Voice Input">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+        <path
+          d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+      </svg>
+    </button>
+    <div class="voice-feedback" id="voiceFeedback"></div>
+  </div>
+
+  <!-- Enrollment Controls (appear during enrollment confirmation) -->
+  <div id="enrollmentControls" style="display:none; margin-top:12px; text-align:center;">
+    <div id="enrollmentText" style="color:white; margin-bottom:8px;"></div>
+    <button id="enrollConfirmBtn" style="margin-right:8px;">Confirm</button>
+    <button id="enrollRetryBtn" style="margin-right:8px;">Retry Name</button>
+    <button id="enrollCancelBtn">Cancel</button>
+  </div>
+
+  <script>
+    // =============================================
+    // CONFIGURATION
+    // =============================================
+    const backendURL = "http://192.168.56.214:8000";
+
+    // =============================================
+    // STATE MANAGEMENT
+    // =============================================
+    let streaming = false;
+    let intervalId = null;
+    let isListening = false;
+    let recognition = null;
+    let currentMode = 'scan'; // scan, quickscan, face, vision
+    let isProcessing = false;
+    
+    // Enrollment state 
+    let enrollmentState = {
+      active: false,
+      pendingFaceEncoding: null,
+      pendingName: null,
+      pendingEnrollmentPrompted: false,
+      // remember streaming state so we can resume after enrollment
+      wasStreaming: false
+    };
+
+    // Helper: common affirmative/negative phrases
+    function isAffirmative(text) {
+      if (!text) return false;
+      const t = text.toLowerCase();
+      return ["yes", "yeah", "yep", "yup", "sure", "ok", "okay", "confirm", "correct", "add"].some(w => t.includes(w));
+    }
+
+    function isNegative(text) {
+      if (!text) return false;
+      const t = text.toLowerCase();
+      return ["no", "nah", "nope", "skip", "cancel", "don't", "dont"].some(w => t.includes(w));
+    }
+
+    // =============================================
+    // DOM ELEMENTS
+    // =============================================
+    const video = document.getElementById("cam");
+    const output = document.getElementById("output");
+    const micBtn = document.getElementById("micBtn");
+    const voiceFeedback = document.getElementById("voiceFeedback");
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const currentModeDisplay = document.getElementById("currentMode");
+    const modeDescription = document.getElementById("modeDescription");
+    const toggleBtn = document.getElementById("toggleBtn");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+
+    // Announce cooldowns for known people
+    const nameCooldowns = {};
+    const NAME_COOLDOWN_SECONDS = 30;
+
+    function shouldAnnounceName(name) {
+      const now = Date.now() / 1000;
+      const lastAnnounced = nameCooldowns[name] || 0;
+      if (now - lastAnnounced >= NAME_COOLDOWN_SECONDS) {
+        nameCooldowns[name] = now;
+        return true;
+      }
+      return false;
+    }
+
+    // =============================================
+    // MODE CONFIGURATION
+    // =============================================
+    const MODE_CONFIG = {
+      scan: {
+        endpoint: '/api/scan',
+        interval: 3000, // 3 seconds
+        name: 'SCAN MODE',
+        description: 'Standard object detection every 3 seconds'
+      },
+      quickscan: {
+        endpoint: '/api/quickscan',
+        interval: 2000, // 2 seconds for urgent scenarios
+        name: 'QUICK SCAN MODE',
+        description: 'Fast detection for urgent scenarios'
+      },
+      face: {
+        endpoint: '/api/face',
+        interval: 3000, // 3 seconds for faster response
+        name: 'FACE RECOGNITION MODE',
+        description: 'Identifying people and objects using YOLO'
+      },
+      vision: {
+        endpoint: '/api/vision',
+        interval: null, // One-shot only
+        name: 'VISION MODE',
+        description: 'AI analysis of the scene'
+      }
+    };
+
+    // =============================================
+    // 1. CAMERA INITIALIZATION
+    // =============================================
+    async function startCamera() {
+      try {
+        const constraints = {
+          video: { facingMode: { ideal: "user" } }, // Back camera, user: front
+          audio: false,
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        updateStatus("Ready", false);
+        console.log('[CAMERA] Started successfully');
+      } catch (err) {
+        output.innerHTML = `<strong>Camera Error:</strong> ${err}`;
+        updateStatus("Error", false);
+        console.error('[CAMERA ERROR]', err);
+      }
+    }
+
+    // Initialize camera on load
+    startCamera()
+      .then(() => {
+        switchMode('scan');
+        startStreaming();
+      })
+      .catch(() => {
+        // Camera failed to start; user can still manually start scanning after granting permission
+      });
+
+    // =============================================
+    // 2. FRAME CAPTURE AND SEND
+    // =============================================
+    async function captureAndSendFrame(force = false) {
+      if (!force && (!streaming || isProcessing)) {
+        console.log('[FRAME] Skipping capture; streaming:', streaming, 'isProcessing:', isProcessing, 'force:', force);
+        return;
+      }
+
+      isProcessing = true;
+
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 640;
+        canvas.height = 480;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const blob = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/jpeg", 0.7)
+        );
+
+        const formData = new FormData();
+        formData.append("file", blob, "frame.jpg");
+
+        const endpoint = MODE_CONFIG[currentMode].endpoint;
+        console.log(`[${currentMode.toUpperCase()}] Sending frame to ${endpoint}`);
+
+        const res = await fetch(`${backendURL}${endpoint}`, {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+        console.log(`[${currentMode.toUpperCase()}] Response:`, data);
+
+        handleModeResponse(data);
+
+      } catch (err) {
+        output.innerHTML = `<strong>Connection Error:</strong> ${err}`;
+        console.error('[FRAME ERROR]', err);
+      } finally {
+        isProcessing = false;
+      }
+    }
+
+    function handleModeResponse(data) {
+      switch (currentMode) {
+        case 'scan':
+        case 'quickscan':
+          handleScanResponse(data);
+          break;
+        case 'face':
+          handleFaceRecognition(data);
+          break;
+        case 'vision':
+          handleVisionAnalysis(data);
+          break;
+      }
+    }
+
+    function handleScanResponse(data) {
+      // Separate objects and faces
+      const objects = data.detections.filter(d => d.type !== 'face');
+      const faces = data.detections.filter(d => d.type === 'face');
+
+      // Handle objects
+      let text = `<strong>Detected (${data.mode}):</strong><br>`;
+      const phrases = [];
+
+      const FRAME_WIDTH = 640;
+      const center = FRAME_WIDTH / 2;
+      const margin = FRAME_WIDTH * 0.2;
+
+      function getPosition(bbox) {
+        if (!bbox || bbox.length < 4) return "ahead";
+        const [x1, , x2] = bbox;
+        const cx = (x1 + x2) / 2;
+        if (cx < center - margin) return "on your left";
+        if (cx > center + margin) return "on your right";
+        return "ahead";
+      }
+
+      objects.forEach((det) => {
+        const labelLower = det.label.toLowerCase();
+        const pos = getPosition(det.bbox);
+        const priority = det.priority ? '⚠ ' : '';
+        const confidence = det.confidence ? `${(det.confidence * 100).toFixed(0)}%` : '';
+
+        text += `${priority}📦 ${det.label} ${pos} ${confidence}<br>`;
+
+        if (det.priority || currentMode === 'quickscan') {
+          phrases.push(`${det.label} ${pos}`);
+        }
+      });
+
+      // Handle faces
+      if (faces && faces.length > 0) {
+        faces.forEach((face) => {
+          const icon = face.name === 'unknown' ? '❓' : '👤';
+          text += `${icon} ${face.name}<br>`;
+
+          if (face.announce && face.name !== 'unknown') {
+            if (shouldAnnounceName(face.name)) {
+              phrases.push(face.name);
+            }
+          }
+          
+          // Check if unknown face has encoding (eligible for enrollment)
+          if (face.name === 'unknown' && face.face_encoding) {
+            console.log('[FACE RECOGNITION] Found unknown face with encoding for enrollment');
+            if (!enrollmentState.active) {
+              enrollmentState.pendingFaceEncoding = face.face_encoding;
+              enrollmentState.pendingEnrollmentPrompted = true;
+              updateEnrollmentUI();
+
+              if (face.prompt_enrollment) {
+                const enrollText = 'Unknown person seen enough times. Starting enrollment now. Please say the person\'s name.';
+                output.innerHTML = `<strong>Enrollment:</strong> ${enrollText}`;
+                voiceFeedback.textContent = 'Enrollment started. Say the person\'s name.';
+                updateStatus('Enrollment active', true);
+                speak(enrollText);
+                setTimeout(beginEnrollment, 300);
+              } else {
+                const promptText = `Unknown person detected ${face.detection_count} times. Keep them in frame for 3 detections within 15 seconds to enroll.`;
+                output.innerHTML = `<strong>Enrollment pending:</strong> ${promptText}`;
+                speak(promptText);
+                voiceFeedback.textContent = promptText;
+                updateStatus('Enrollment pending', false);
+              }
+            }
+          } else if (face.name === 'unknown' && !face.face_encoding) {
+            console.log('[ENROLLMENT] Unknown face found but no encoding - cannot enroll');
+          }
+        });
+      }
+
+      if (!objects.length && !faces.length) {
+        text += "No objects or faces detected.";
+      }
+
+      // Navigation Guidance Override
+      if (data.navigation) {
+        text = `<strong>🧭 Navigation:</strong> ${data.navigation}<br><hr>` + text;
+        output.innerHTML = text;
+        speak(data.navigation);
+      } else {
+        output.innerHTML = text;
+        if (phrases.length > 0) {
+          speak(phrases.join(", ") + " detected");
+        }
+      }
+    }
+
+    function handleFaceRecognition(data) {
+      let text = "<strong>Face Recognition:</strong><br>";
+      const phrases = [];
+      let unknownFaceFound = false;
+      let unknownFaceWithEncoding = null;
+
+      console.log('[FACE RECOGNITION] Processing response:', data);
+
+      if (data.faces && data.faces.length > 0) {
+        data.faces.forEach((face) => {
+          const icon = face.name === 'unknown' ? '❓' : '👤';
+          text += `${icon} ${face.name}<br>`;
+
+          if (face.announce && face.name !== 'unknown') {
+            if (shouldAnnounceName(face.name)) {
+              phrases.push(face.name);
+            }
+          }
+          
+          // Check if unknown face has encoding (eligible for enrollment)
+          if (face.name === 'unknown' && face.face_encoding) {
+            unknownFaceFound = true;
+            unknownFaceWithEncoding = face;
+            console.log('[FACE RECOGNITION] Found unknown face with encoding for enrollment');
+          }
+        });
+      }
+
+      if (data.objects && data.objects.length > 0) {
+        data.objects.forEach((obj) => {
+          text += `📦 ${obj.label}<br>`;
+        });
+      }
+
+      if (!data.faces?.length && !data.objects?.length) {
+        text += "No faces or objects detected.";
+      }
+
+      output.innerHTML = text;
+
+      if (phrases.length > 0) {
+        speak(phrases.join(", ") + " detected");
+      }
+      
+      // Handle unknown face enrollment prompt
+      if (unknownFaceFound && unknownFaceWithEncoding && !enrollmentState.active) {
+        console.log('[ENROLLMENT] Triggering enrollment prompt for unknown face');
+        enrollmentState.pendingFaceEncoding = unknownFaceWithEncoding.face_encoding;
+        enrollmentState.pendingEnrollmentPrompted = true;
+        updateEnrollmentUI();
+
+        if (unknownFaceWithEncoding.prompt_enrollment) {
+          const enrollText = 'Unknown person seen enough times. Starting enrollment now. Please say the person’s name.';
+          output.innerHTML = `<strong>Enrollment:</strong> ${enrollText}`;
+          voiceFeedback.textContent = 'Enrollment started. Say the person’s name.';
+          updateStatus('Enrollment active', true);
+          speak(enrollText);
+          setTimeout(beginEnrollment, 300);
+        } else {
+          const promptText = `Unknown person detected ${unknownFaceWithEncoding.detection_count} times. Keep them in frame for 3 detections within 15 seconds to enroll.`;
+          output.innerHTML = `<strong>Enrollment pending:</strong> ${promptText}`;
+          speak(promptText);
+          voiceFeedback.textContent = promptText;
+          updateStatus('Enrollment pending', false);
+        }
+      } else if (unknownFaceFound && !unknownFaceWithEncoding) {
+        console.log('[ENROLLMENT] Unknown face found but no encoding - cannot enroll');
+      }
+    }
+
+    function handleVisionAnalysis(data) {
+      const visionText = data.description || data.text;
+    if (visionText) {
+        output.innerHTML = `<strong>Vision Analysis:</strong><br>${visionText}`;
+        speak(visionText);
+      } else {
+        output.innerHTML = "<strong>Error:</strong> No analysis received.";
+      }
+    }
+
+    // =============================================
+    // 4. TEXT-TO-SPEECH
+    // =============================================
+    function speak(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.rate = 1.0;
+        msg.pitch = 1.0;
+        msg.volume = 1.0;
+        window.speechSynthesis.speak(msg);
+      }
+    }
+
+    // =============================================
+    // 5. MODE SWITCHING
+    // =============================================
+    function switchMode(newMode) {
+      // Stop current streaming
+      if (streaming) {
+        stopStreaming();
+      }
+
+      // Update mode
+      currentMode = newMode;
+      const config = MODE_CONFIG[newMode];
+
+      // Update UI
+      currentModeDisplay.textContent = config.name;
+      modeDescription.textContent = config.description;
+
+      console.log(`[MODE] Switched to ${newMode}`);
+    }
+
+    function startStreaming() {
+      if (streaming) return;
+
+      const config = MODE_CONFIG[currentMode];
+
+      if (!config.interval) {
+        // One-shot mode (vision)
+        captureAndSendFrame();
+        return;
+      }
+
+      streaming = true;
+      toggleBtn.textContent = `Stop ${config.name}`;
+      toggleBtn.classList.add('active');
+      updateStatus(`${config.name} Active, true`);
+
+      // Immediate first frame
+      captureAndSendFrame();
+
+      // Then periodic updates
+      intervalId = setInterval(captureAndSendFrame, config.interval);
+
+      console.log(`[STREAMING] Started in ${currentMode} mode (${config.interval}ms interval)`);
+    }
+
+    function stopStreaming() {
+      if (!streaming) return;
+
+      streaming = false;
+      clearInterval(intervalId);
+      intervalId = null;
+
+      toggleBtn.textContent = 'Start Scan Mode';
+      toggleBtn.classList.remove('active');
+      updateStatus("Paused", false);
+
+      console.log('[STREAMING] Stopped');
+    }
+
+    // =============================================
+    // 6. BUTTON HANDLERS
+    // =============================================
+    toggleBtn.onclick = () => {
+      if (streaming) {
+        stopStreaming();
+      } else {
+        startStreaming();
+      }
+    };
+
+    analyzeBtn.onclick = async () => {
+      const previousMode = currentMode;
+      const wasStreamingBefore = streaming;
+
+      if (streaming) {
+        stopStreaming();
+      }
+
+      switchMode('vision');
+      output.innerHTML = "<strong>Status:</strong> Analyzing scene...";
+      speak("Analyzing scene");
+      updateStatus("Analyzing", false);
+
+      await captureAndSendFrame(true);
+
+      switchMode(previousMode);
+      if (wasStreamingBefore) {
+        startStreaming();
+      } else {
+        updateStatus("Ready", false);
+      }
+    };
+
+    // =============================================
+    // 7. SPEECH RECOGNITION
+    // =============================================
+    function initSpeechRecognition() {
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+          isListening = true;
+          micBtn.classList.add('listening');
+          voiceFeedback.innerHTML = '<span class="loading"></span> Listening...';
+          console.log('[VOICE] Started listening');
+        };
+
+        recognition.onresult = (event) => {
+          (async () => {
+            const transcript = event.results[0][0].transcript;
+            console.log(`[VOICE] Recognized: "${transcript}"`);
+            voiceFeedback.textContent = `You said: "${transcript}"`;
+
+            // Quick path: if we're in enrollment confirmation and user said affirmative, trigger save immediately
+            try {
+                if (enrollmentState.active && enrollmentState.pendingName && isAffirmative(transcript)) {
+                  console.log('[VOICE] Quick affirmative detected in onresult — completing enrollment');
+                  // Ensure streaming is stopped before saving
+                  if (streaming) {
+                    console.log('[VOICE] Stopping streaming before enrollment save (quick path)');
+                    stopStreaming();
+                    enrollmentState.wasStreaming = true;
+                  }
+                  // call without awaiting to avoid blocking recognition lifecycle
+                  completeEnrollment();
+                  return;
+                }
+            } catch (e) {
+              console.warn('[VOICE] Quick path check failed', e);
+            }
+
+            // Send to backend for intent detection / or enrollment flow
+            await processVoiceCommand(transcript);
+
+            // Auto-clear feedback after 3 seconds
+            setTimeout(() => {
+              if (voiceFeedback) voiceFeedback.textContent = '';
+            }, 3000);
+          })();
+        };
+
+        recognition.onerror = (event) => {
+          console.error('[VOICE] Error:', event.error);
+
+          let errorMsg = 'Could not recognize speech';
+          if (event.error === 'no-speech') {
+            errorMsg = 'No speech detected';
+          } else if (event.error === 'network') {
+            errorMsg = 'Network error';
+          } else if (event.error === 'aborted') {
+            errorMsg = 'Recognition aborted';
+          }
+
+          voiceFeedback.textContent = `Error: ${errorMsg}`;
+          setTimeout(() => {
+            if (voiceFeedback) voiceFeedback.textContent = '';
+          }, 3000);
+        };
+
+        recognition.onend = () => {
+          isListening = false;
+          micBtn.classList.remove('listening');
+          console.log('[VOICE] Stopped listening');
+        };
+
+        console.log('[VOICE] Speech recognition initialized');
+        return true;
+      } else {
+        console.warn('[VOICE] Speech recognition not supported');
+        if (voiceFeedback) {
+          voiceFeedback.textContent = 'Voice input not supported on this browser';
+        }
+        return false;
+      }
+    }
+
+    // Initialize speech recognition on load
+    initSpeechRecognition();
+
+    // =============================================
+    // 8. MICROPHONE BUTTON HANDLER
+    // =============================================
+    if (micBtn) {
+      micBtn.addEventListener('click', () => {
+        if (!recognition) {
+          voiceFeedback.textContent = 'Voice input not available';
+          setTimeout(() => {
+            voiceFeedback.textContent = '';
+          }, 2000);
+          return;
+        }
+
+        if (isListening) {
+          recognition.stop();
+          console.log('[VOICE] Manually stopped');
+        } else {
+          try {
+            recognition.start();
+          } catch (error) {
+            console.error('[VOICE] Start error:', error);
+            // Already running, stop and restart
+            recognition.stop();
+            setTimeout(() => {
+              try {
+                recognition.start();
+              } catch (e) {
+                console.error('[VOICE] Restart failed:', e);
+              }
+            }, 300);
+          }
+        }
+      });
+    }
+
+    // =============================================
+    // 9. PROCESS VOICE COMMAND
+    // =============================================
+    async function processVoiceCommand(command) {
+      try {
+        console.log('[VOICE] Processing command:', command);
+        console.log('[VOICE] enrollmentState:', JSON.stringify({active: enrollmentState.active, pendingFaceEncoding: !!enrollmentState.pendingFaceEncoding, pendingName: enrollmentState.pendingName, prompted: enrollmentState.pendingEnrollmentPrompted}));
+
+        // Show processing state
+        voiceFeedback.innerHTML = '<span class="loading"></span> Processing...';
+
+        // ===== ENROLLMENT FLOW =====
+        // If there's a pending unknown face and we have not yet asked to add
+        if (enrollmentState.pendingFaceEncoding && !enrollmentState.active && !enrollmentState.pendingName) {
+          if (isAffirmative(command)) {
+            // User agreed to enroll — pause streaming so we don't get repeated detections
+            enrollmentState.wasStreaming = streaming;
+            if (streaming) stopStreaming();
+
+            enrollmentState.active = true;
+            enrollmentState.pendingEnrollmentPrompted = false;
+            speak("Okay, please say the person's name");
+            voiceFeedback.textContent = 'Ready for name input...';
+            updateEnrollmentUI();
+            return;
+          } else if (isNegative(command)) {
+            speak("Enrollment cancelled");
+            enrollmentState.pendingFaceEncoding = null;
+            enrollmentState.pendingEnrollmentPrompted = false;
+            enrollmentState.active = false;
+            voiceFeedback.textContent = '';
+            updateEnrollmentUI();
+            return;
+          }
+        }
+
+        // If we're waiting for name input during enrollment (user already said yes)
+        if (enrollmentState.active && enrollmentState.pendingFaceEncoding && !enrollmentState.pendingName) {
+          // Treat the spoken command as the name
+          enrollmentState.pendingName = command.trim();
+          updateEnrollmentUI();
+          speak(`You said ${enrollmentState.pendingName}. Is this correct? Say yes to confirm or no to try again.`);
+          console.log('[ENROLLMENT] Captured name:', enrollmentState.pendingName);
+          return;
+        }
+
+        // If we're confirming the name
+        if (enrollmentState.active && enrollmentState.pendingFaceEncoding && enrollmentState.pendingName) {
+            if (isAffirmative(command)) {
+              // Ensure streaming is stopped before saving
+              if (streaming) {
+                console.log('[VOICE] Stopping streaming before enrollment save (confirmation branch)');
+                stopStreaming();
+                enrollmentState.wasStreaming = true;
+              }
+              // Complete enrollment
+              await completeEnrollment();
+              return;
+            } else if (isNegative(command)) {
+              // Let user try again without resuming streaming (they are in the enrollment flow)
+              speak("Okay, let's try again. Say the person's name.");
+              enrollmentState.pendingName = null;
+              voiceFeedback.textContent = 'Ready for name input...';
+              return;
+            }
+        }
+
+        // If user explicitly cancels the enrollment flow while active
+        if (enrollmentState.active && isNegative(command) && /cancel|stop|abort/.test(command.toLowerCase())) {
+          const shouldResumeCancel = enrollmentState.wasStreaming;
+          enrollmentState.pendingFaceEncoding = null;
+          enrollmentState.pendingName = null;
+          enrollmentState.active = false;
+          enrollmentState.wasStreaming = false;
+          speak('Enrollment cancelled');
+          voiceFeedback.textContent = '';
+          if (shouldResumeCancel) {
+            setTimeout(() => startStreaming(), 300);
+          }
+          return;
+        }
+
+        // ===== END ENROLLMENT FLOW =====
+
+        // Send command to backend for intent detection
+        const response = await fetch(`${backendURL}/voice-command`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ command: command })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        const modeData = await response.json();
+        console.log('[VOICE] Backend response:', modeData);
+
+        // Step 2: Handle the detected mode
+        await handleVoiceMode(modeData, command);
+
+        // Clear feedback
+        voiceFeedback.textContent = '';
+
+      } catch (err) {
+        console.error('[VOICE] Processing error:', err);
+        voiceFeedback.textContent = 'Failed to process command';
+        speak('Sorry, I could not process that command');
+
+        setTimeout(() => {
+          voiceFeedback.textContent = '';
+        }, 2000);
+      }
+    }
+    
+    // =============================================
+    // ENROLLMENT COMPLETION HANDLER
+    // =============================================
+    async function completeEnrollment() {
+      try {
+        const name = enrollmentState.pendingName;
+        const encoding = enrollmentState.pendingFaceEncoding;
+        
+        console.log('[ENROLLMENT] Completing enrollment for:', name, 'encoding present?', !!encoding);
+        updateEnrollmentUI();
+        
+        speak(`Adding ${name} to memory. Please wait...`);
+        voiceFeedback.innerHTML = '<span class="loading"></span> Saving face...';
+        
+        // Call backend to save the face
+        const response = await fetch(`${backendURL}/api/enroll/save`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: name,
+            face_encoding: encoding
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          speak(`${name} has been added to memory successfully`);
+          console.log('[ENROLLMENT] Success:', result);
+        } else {
+          speak(`Failed to save ${name}. Error: ${result.message}`);
+          console.error('[ENROLLMENT] Failed:', result);
+        }
+        
+        // Reset enrollment state and resume streaming if we paused it
+        const shouldResume = enrollmentState.wasStreaming;
+        enrollmentState.pendingFaceEncoding = null;
+        enrollmentState.pendingName = null;
+        enrollmentState.active = false;
+        enrollmentState.wasStreaming = false;
+        voiceFeedback.textContent = '';
+        updateStatus('Ready', false);
+
+        if (shouldResume) {
+          // small delay to let TTS finish speaking the success message
+          setTimeout(() => {
+            startStreaming();
+          }, 500);
+        }
+        
+        } catch (err) {
+        console.error('[ENROLLMENT] Error:', err);
+        speak('Failed to save the face. Please try again.');
+        voiceFeedback.textContent = 'Enrollment failed';
+
+        // Reset on error and resume streaming if needed
+        const shouldResumeOnError = enrollmentState.wasStreaming;
+        enrollmentState.pendingFaceEncoding = null;
+        enrollmentState.pendingName = null;
+        enrollmentState.active = false;
+        enrollmentState.wasStreaming = false;
+        updateStatus('Ready', false);
+
+        if (shouldResumeOnError) {
+          setTimeout(() => {
+            startStreaming();
+          }, 500);
+        }
+
+        setTimeout(() => {
+          voiceFeedback.textContent = '';
+        }, 2000);
+      }
+    }
+
+    // =============================================
+    // 10. HANDLE VOICE-DETECTED MODE
+    // =============================================
+
+    // =============================================
+    // ENROLLMENT UI HELPERS
+    // =============================================
+    const enrollmentControls = document.getElementById('enrollmentControls');
+    const enrollmentText = document.getElementById('enrollmentText');
+    const enrollConfirmBtn = document.getElementById('enrollConfirmBtn');
+    const enrollRetryBtn = document.getElementById('enrollRetryBtn');
+    const enrollCancelBtn = document.getElementById('enrollCancelBtn');
+
+    function updateEnrollmentUI() {
+      try {
+        if (enrollmentState.active && enrollmentState.pendingName) {
+          enrollmentControls.style.display = 'block';
+          enrollConfirmBtn.textContent = 'Save Name';
+          enrollmentText.textContent = `Add "${enrollmentState.pendingName}" to memory?`;
+        } else if (enrollmentState.active && enrollmentState.pendingFaceEncoding && !enrollmentState.pendingName) {
+          enrollmentControls.style.display = 'block';
+          enrollConfirmBtn.textContent = 'Capture Name';
+          enrollmentText.textContent = 'Waiting for name... Press the microphone and speak the person’s name.';
+        } else if (enrollmentState.pendingFaceEncoding && !enrollmentState.active) {
+          enrollmentControls.style.display = 'block';
+          enrollConfirmBtn.textContent = 'Start Enrollment';
+          enrollmentText.textContent = 'Unknown person detected. Say yes or press Start Enrollment to enroll.';
+        } else {
+          enrollmentControls.style.display = 'none';
+          enrollmentText.textContent = '';
+        }
+      } catch (e) {
+        console.warn('Failed to update enrollment UI', e);
+      }
+    }
+
+    function beginEnrollment() {
+      if (!enrollmentState.pendingFaceEncoding) {
+        speak('No unknown face is waiting to be enrolled.');
+        return;
+      }
+      enrollmentState.wasStreaming = streaming;
+      if (streaming) stopStreaming();
+      enrollmentState.active = true;
+      enrollmentState.pendingEnrollmentPrompted = false;
+      enrollmentState.pendingName = null;
+      updateEnrollmentUI();
+      updateStatus('Enrollment active', true);
+      voiceFeedback.textContent = 'Ready for name input...';
+    }
+
+    enrollConfirmBtn.addEventListener('click', () => {
+      console.log('[ENROLLMENT UI] Confirm button clicked');
+      if (!enrollmentState.active && enrollmentState.pendingFaceEncoding) {
+        beginEnrollment();
+      } else if (enrollmentState.active && enrollmentState.pendingName) {
+        completeEnrollment();
+      } else {
+        speak('Press the microphone and say the name when ready.');
+      }
+    });
+
+    enrollRetryBtn.addEventListener('click', () => {
+      console.log('[ENROLLMENT UI] Retry name clicked');
+      if (enrollmentState.active) {
+        enrollmentState.pendingName = null;
+        speak("Okay, please say the person's name");
+        voiceFeedback.textContent = 'Ready for name input...';
+      } else {
+        speak('Enrollment has not started yet. Press Start Enrollment first.');
+      }
+      updateEnrollmentUI();
+    });
+
+    enrollCancelBtn.addEventListener('click', () => {
+      console.log('[ENROLLMENT UI] Cancel clicked');
+      const shouldResume = enrollmentState.wasStreaming;
+      enrollmentState.pendingFaceEncoding = null;
+      enrollmentState.pendingName = null;
+      enrollmentState.active = false;
+      enrollmentState.wasStreaming = false;
+      updateEnrollmentUI();
+      updateStatus('Ready', false);
+      speak('Enrollment cancelled');
+      if (shouldResume) setTimeout(() => startStreaming(), 300);
+    });
+    async function handleVoiceMode(modeData, originalCommand) {
+      const { mode, prompt, endpoint } = modeData;
+
+      console.log(`[VOICE] Switching to mode: ${mode}`);
+
+      // Stop current streaming
+      if (streaming) {
+        stopStreaming();
+      }
+
+      switch (mode) {
+        case 'scan':
+          switchMode('scan');
+          startStreaming();
+          speak('Scan mode activated');
+          break;
+
+        case 'quickscan':
+          switchMode('quickscan');
+          startStreaming();
+          speak('Quick scan mode activated. Watching for obstacles.');
+          break;
+
+        case 'face':
+          switchMode('face');
+          startStreaming();
+          speak('Face recognition mode activated');
+          break;
+
+        case 'vision':
+          // For vision mode, capture frame and send with prompt
+          switchMode('vision');
+          output.innerHTML = `<strong>Question:</strong> ${originalCommand}<br><strong>Status:</strong> Analyzing...`;
+          speak('Let me analyze that');
+
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = 640;
+            canvas.height = 480;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const blob = await new Promise((resolve) =>
+              canvas.toBlob(resolve, "image/jpeg", 0.8)
+            );
+
+            const formData = new FormData();
+            formData.append("file", blob, "frame.jpg");
+
+            // Add the prompt from LLM
+            if (prompt) {
+              formData.append("prompt", prompt);
+            }
+
+            const response = await fetch(`${backendURL}${endpoint}`, {
+              method: 'POST',
+              body: formData
+            });
+
+            const result = await response.json();
+
+            output.innerHTML = `<strong>Question:</strong> ${originalCommand}<br><strong>Answer:</strong> ${result.text}`;
+            speak(result.text);
+
+          } catch (err) {
+            console.error('[VISION ERROR]', err);
+            output.innerHTML = `<strong>Error:</strong> Failed to analyze scene`;
+            speak('Sorry, I could not analyze the scene');
+          }
+          break;
+        case 'interaction':
+          switchMode('scan');
+          output.innerHTML = `<strong>Interaction:</strong> ${prompt || originalCommand}`;
+          speak(prompt || 'Okay');
+          break;
+        default:
+          switchMode('scan');
+          output.innerHTML = `<strong>Unknown mode:</strong> ${mode}. Returning to scan.`;
+          speak('Switching back to scan mode');
+      }
+    }
+
+    // =============================================
+    // 11. STATUS INDICATOR UPDATE
+    // =============================================
+    function updateStatus(text, active) {
+      if (statusText) statusText.textContent = text;
+      if (statusDot) {
+        if (active) {
+          statusDot.classList.add('active');
+        } else {
+          statusDot.classList.remove('active');
+        }
+      }
+    }
+
+    // =============================================
+    // 12. KEYBOARD SHORTCUTS (Optional)
+    // =============================================
+    document.addEventListener('keydown', (e) => {
+      // Press 'V' to trigger voice input
+      if (e.key === 'v' || e.key === 'V') {
+        if (micBtn && !isListening) {
+          micBtn.click();
+        }
+      }
+
+      // Press 'S' to toggle streaming
+      if (e.key === 's' || e.key === 'S') {
+        toggleBtn.click();
+      }
+
+      // Press 'A' to analyze scene
+      if (e.key === 'a' || e.key === 'A') {
+        analyzeBtn.click();
+      }
+
+      // Press '1' for scan mode
+      if (e.key === '1') {
+        switchMode('scan');
+        speak('Scan mode');
+      }
+
+      // Press '2' for quickscan mode
+      if (e.key === '2') {
+        switchMode('quickscan');
+        speak('Quick scan mode');
+      }
+
+      // Press '3' for face recognition mode
+      if (e.key === '3') {
+        switchMode('face');
+        speak('Face recognition mode');
+      }
+    });
+
+    // =============================================
+    // 13. WAKE LOCK (Prevent Screen Sleep)
+    // =============================================
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          console.log('[WAKELOCK] Screen wake lock activated');
+
+          wakeLock.addEventListener('release', () => {
+            console.log('[WAKELOCK] Screen wake lock released');
+          });
+        } catch (err) {
+          console.error('[WAKELOCK] Error:', err);
+        }
+      }
+    }
+
+    // Request wake lock when streaming starts
+    const originalStartStreaming = startStreaming;
+    startStreaming = function () {
+      originalStartStreaming();
+      if (streaming) {
+        requestWakeLock();
+      }
+    };
+
+    const originalStopStreaming = stopStreaming;
+    stopStreaming = function () {
+      originalStopStreaming();
+      if (wakeLock) {
+        wakeLock.release();
+        wakeLock = null;
+      }
+    };
+
+    // =============================================
+    // 14. PAGE VISIBILITY (Pause when hidden)
+    // =============================================
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        console.log('[PAGE] Hidden, pausing...');
+        if (streaming) {
+          stopStreaming();
+        }
+      } else {
+        console.log('[PAGE] Visible again');
+      }
+    });
+
+    // =============================================
+    // 15. CONNECTION CHECK
+    // =============================================
+    async function checkServerConnection() {
+      try {
+        const response = await fetch(`${backendURL}/health`);
+        const health = await response.json();
+
+        console.log('[SERVER] Health check:', health);
+
+        if (!health.yolo_model_loaded) {
+          output.innerHTML = '<strong>⚠ Warning:</strong> YOLO model not loaded. Object detection may not work.';
+        }
+
+        if (!health.groq_configured) {
+          console.warn('[SERVER] Groq API not configured');
+        }
+
+        updateStatus("Connected", false);
+        return true;
+
+      } catch (err) {
+        console.error('[SERVER] Connection failed:', err);
+        updateStatus("Server Offline", false);
+        output.innerHTML = '<strong>Error:</strong> Cannot connect to server. Please check if the backend is running.';
+        return false;
+      }
+    }
+
+    // Check connection on load
+    setTimeout(checkServerConnection, 1000);
+
+    // =============================================
+    // 16. PERIODIC CONNECTION CHECK
+    // =============================================
+    setInterval(() => {
+      if (!streaming) {
+        checkServerConnection();
+      }
+    }, 30000); // Check every 30 seconds when not streaming
+
+    // =============================================
+    // 17. ERROR RECOVERY
+    // =============================================
+    window.addEventListener('error', (event) => {
+      console.error('[GLOBAL ERROR]', event.error);
+    });
+
+    // =============================================
+    // 18. INITIALIZATION MESSAGE
+    // =============================================
+    console.log(`
+    ╔═══════════════════════════════════════╗
+    ║   👓 NEYTRA INITIALIZED               ║
+    ║   Agentic AI Assistant                ║
+    ║                                       ║
+    ║   Modes Available:                    ║
+    ║   • Scan (10s interval)              ║
+    ║   • Quick Scan (2s interval)         ║
+    ║   • Face Recognition (5s interval)   ║
+    ║   • Vision LLM (on-demand)           ║
+    ║                                       ║
+    ║   Keyboard Shortcuts:                 ║
+    ║   V - Voice input                     ║
+    ║   S - Toggle streaming                ║
+    ║   A - Analyze scene                   ║
+    ║   1,2,3 - Switch modes                ║
+    ╚═══════════════════════════════════════╝
+    `);
+
+    // Welcome message
+    setTimeout(() => {
+      speak('Neytra initialized and ready');
+    }, 1500);
+
+  </script>
+
+</body>
+
+</html>
