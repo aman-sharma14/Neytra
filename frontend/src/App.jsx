@@ -145,8 +145,8 @@ export default function App() {
         }, i * 700)
       })
 
-      // Prompt enrollment for unknown faces that cleared their 8s timer
-      const unknowns = detectedFaces.filter(f => !f.known && f.should_announce)
+      // Prompt enrollment for unknown faces that hit their 15s/3-count logic
+      const unknowns = detectedFaces.filter(f => !f.known && f.should_enroll_prompt)
       unknowns.forEach((_, i) => {
         addLog('Requesting enrollment for unknown face', 'warn')
         setTimeout(() => {
