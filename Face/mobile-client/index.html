@@ -481,9 +481,14 @@
 
     function shouldAnnounceName(name) {
       const now = Date.now() / 1000;
-      const lastAnnounced = nameCooldowns[name] || 0;
-      if (now - lastAnnounced >= NAME_COOLDOWN_SECONDS) {
-        nameCooldowns[name] = now;
+      const lastDetected = nameCooldowns[name] || 0;
+      const timeDiff = now - lastDetected;
+      
+      // Update the last detected time to NOW on EVERY check
+      nameCooldowns[name] = now;
+
+      // Only announce if it has been >= 30 seconds since the LAST detection
+      if (lastDetected === 0 || timeDiff >= NAME_COOLDOWN_SECONDS) {
         return true;
       }
       return false;
