@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+google-generativeai
+opencv-python
+face_recognition
+ultralytics
+deepface
+Pillow
+numpy<2.0.0
+python-multipart
+aiofiles
