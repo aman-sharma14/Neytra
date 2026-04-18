@@ -27,6 +27,7 @@ from config import (
 
 # In-memory timer state — { encoding_hash: first_seen_timestamp }
 _face_timers: dict[str, float] = {}
+_unknown_trackers: list[dict] = []
 
 # Face database — loaded at startup, updated on enroll
 _known_encodings: list[np.ndarray] = []
@@ -133,17 +134,57 @@ def process_frame(base64_frame: str) -> list[dict]:
             best_idx = int(np.argmin(distances))
             name = _known_names[best_idx]
 
-        # Timer logic
-        if enc_hash not in _face_timers:
-            _face_timers[enc_hash] = now
+        # ── Timer & Cooldown Logic ──────────────────────────────────────────────────
+        should_announce = False
+        should_enroll = False
 
-        elapsed = now - _face_timers[enc_hash]
-        should_announce = known and elapsed >= FACE_ANNOUNCE_THRESHOLD
-        should_enroll = not known and elapsed >= FACE_ENROLL_THRESHOLD
+        if known and name:
+            # Known face: Calculate diff between last_detected and current time
+            # Only announce if absence was > 30 seconds
+            last_seen = _face_timers.get(name, 0)
+            if now - last_seen > 30.0:
+                should_announce = True
+            
+            # Always update last_detected to 'now'. This means the 30s cooldown
+            # represents how long the face has been *absent* from the frame.
+            _face_timers[name] = now
 
-        if should_announce or should_enroll:
-            # Reset timer so re-appearance is a new event
-            _face_timers.pop(enc_hash)
+        else:
+            # Unknown face tracking logic
+            global _unknown_trackers
+            
+            # 1. Prune expired trackers (> 15 seconds)
+            _unknown_trackers = [t for t in _unknown_trackers if now - t["first_seen"] <= 15.0]
+
+            matched = False
+            if _unknown_trackers:
+                tracker_encodings = [t["encoding"] for t in _unknown_trackers]
+                matches = face_recognition.compare_faces(
+                    tracker_encodings, encoding, tolerance=FACE_RECOGNITION_TOLERANCE
+                )
+                
+                if any(matches):
+                    distances = face_recognition.face_distance(tracker_encodings, encoding)
+                    best_idx = int(np.argmin(distances))
+                    matched_tracker = _unknown_trackers[best_idx]
+                    
+                    matched_tracker["count"] += 1
+                    
+                    # If detected 3 times in the 15-second window, trigger enrollment
+                    if matched_tracker["count"] >= 3 and not matched_tracker["prompted"]:
+                        should_enroll = True
+                        matched_tracker["prompted"] = True
+                    
+                    matched = True
+            
+            if not matched:
+                # Add a new tracker for this unknown face
+                _unknown_trackers.append({
+                    "encoding": encoding,
+                    "first_seen": now,
+                    "count": 1,
+                    "prompted": False
+                })
 
         top, right, bottom, left = location
         results.append({
