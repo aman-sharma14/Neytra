@@ -52,9 +52,16 @@ flowchart TD
     Cam -- "HTTP POST (frames)" --> Queue
     Mic -- "Voice commands" --> Queue
 
-    Queue --> YOLO & Face & Gemini & Nav & Groq
+    Queue --> YOLO
+    Queue --> Face
+    Queue --> Gemini
+    Queue --> Nav
+    Queue --> Groq
 
-    YOLO & Face & Gemini & Nav --> Queue
+    YOLO --> Queue
+    Face --> Queue
+    Gemini --> Queue
+    Nav --> Queue
     Queue -- "JSON" --> UI
     UI --> TTS
 ```

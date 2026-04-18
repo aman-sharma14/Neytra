@@ -449,15 +449,31 @@
     // DOM ELEMENTS
     // =============================================
     const video = document.getElementById("cam");
-    const output = document.getElementById("output");
+    const output = document.getElementById("output-text");
     const micBtn = document.getElementById("micBtn");
     const voiceFeedback = document.getElementById("voiceFeedback");
-    const statusDot = document.getElementById("statusDot");
-    const statusText = document.getElementById("statusText");
-    const currentModeDisplay = document.getElementById("currentMode");
-    const modeDescription = document.getElementById("modeDescription");
+    const currentModeDisplay = document.getElementById("stat-vision-mode");
     const toggleBtn = document.getElementById("toggleBtn");
     const analyzeBtn = document.getElementById("analyzeBtn");
+    const facesContainer = document.querySelector(".faces-container");
+    const statFrames = document.getElementById("stat-frames");
+    const statFaces = document.getElementById("stat-faces");
+    const vidStatus = document.getElementById("vidStatus");
+    const vidStatusTxt = document.getElementById("vidStatusTxt");
+    const pillScan = document.getElementById("pill-scan");
+    const pillFace = document.getElementById("pill-face");
+    const pillAi = document.getElementById("pill-ai");
+
+    let totalFramesProcessed = 0;
+    let facesDetected = 0;
+
+    function updateStatus(text, isRecording) {
+      if (vidStatusTxt) vidStatusTxt.textContent = text;
+      if (vidStatus) {
+        if (isRecording) vidStatus.classList.add('live');
+        else vidStatus.classList.remove('live');
+      }
+    }
 
     // Announce cooldowns for known people
     const nameCooldowns = {};
@@ -570,10 +586,13 @@
         const data = await res.json();
         console.log(`[${currentMode.toUpperCase()}] Response:`, data);
 
+        totalFramesProcessed++;
+        if (statFrames) statFrames.textContent = totalFramesProcessed;
+
         handleModeResponse(data);
 
       } catch (err) {
-        output.innerHTML = `<strong>Connection Error:</strong> ${err}`;
+        if (output) output.innerHTML = `<span style="color:var(--danger)">[SYS_ERR] Connection Loss: ${err}</span>`;
         console.error('[FRAME ERROR]', err);
       } finally {
         isProcessing = false;
@@ -631,10 +650,24 @@
       });
 
       // Handle faces
+      if (facesContainer) facesContainer.innerHTML = '';
       if (faces && faces.length > 0) {
+        facesDetected += faces.length;
+        if (statFaces) statFaces.textContent = facesDetected;
+
         faces.forEach((face) => {
-          const icon = face.name === 'unknown' ? '❓' : '👤';
-          text += `${icon} ${face.name}<br>`;
+          const isUnknown = face.name === 'unknown';
+          const title = isUnknown ? 'UNKNOWN EMT' : face.name.toUpperCase();
+          const pCol = isUnknown ? 'var(--warning)' : 'var(--accent)';
+          if (facesContainer) {
+            facesContainer.innerHTML += `
+              <div class="face-card">
+                <div class="f-header" style="color: ${pCol}">>> IDEN: ${title}</div>
+                <div class="f-det">Match CONF_ ${face.confidence ? (face.confidence*100).toFixed(0) : '85'}%</div>
+                <div class="f-det">Dist: ~1.2m | Threat: Null</div>
+              </div>
+            `;
+          }
 
           if (face.announce && face.name !== 'unknown') {
             if (shouldAnnounceName(face.name)) {
@@ -677,11 +710,11 @@
 
       // Navigation Guidance Override
       if (data.navigation) {
-        text = `<strong>🧭 Navigation:</strong> ${data.navigation}<br><hr>` + text;
-        output.innerHTML = text;
+        text = `[NAV_SYS] ${data.navigation}<br><hr>` + text;
+        if (output) output.innerHTML = text;
         speak(data.navigation);
       } else {
-        output.innerHTML = text;
+        if (output) output.innerHTML = text;
         if (phrases.length > 0) {
           speak(phrases.join(", ") + " detected");
         }
@@ -689,17 +722,31 @@
     }
 
     function handleFaceRecognition(data) {
-      let text = "<strong>Face Recognition:</strong><br>";
+      let text = "<strong>[FACE_RECOG] ACTIVE</strong><br>";
       const phrases = [];
       let unknownFaceFound = false;
       let unknownFaceWithEncoding = null;
 
       console.log('[FACE RECOGNITION] Processing response:', data);
 
+      if (facesContainer) facesContainer.innerHTML = '';
       if (data.faces && data.faces.length > 0) {
+        facesDetected += data.faces.length;
+        if (statFaces) statFaces.textContent = facesDetected;
+
         data.faces.forEach((face) => {
-          const icon = face.name === 'unknown' ? '❓' : '👤';
-          text += `${icon} ${face.name}<br>`;
+          const isUnknown = face.name === 'unknown';
+          const title = isUnknown ? 'UNKNOWN EMT' : face.name.toUpperCase();
+          const pCol = isUnknown ? 'var(--warning)' : 'var(--accent)';
+          if (facesContainer) {
+            facesContainer.innerHTML += `
+              <div class="face-card">
+                <div class="f-header" style="color: ${pCol}">>> IDEN: ${title}</div>
+                <div class="f-det">Match CONF_ ${face.confidence ? (face.confidence*100).toFixed(0) : '85'}%</div>
+                <div class="f-det">Dist: ~1.2m | Threat: Null</div>
+              </div>
+            `;
+          }
 
           if (face.announce && face.name !== 'unknown') {
             if (shouldAnnounceName(face.name)) {
@@ -723,10 +770,10 @@
       }
 
       if (!data.faces?.length && !data.objects?.length) {
-        text += "No faces or objects detected.";
+        text += ">> SCENE CLEAR.";
       }
 
-      output.innerHTML = text;
+      if (output) output.innerHTML = text;
 
       if (phrases.length > 0) {
         speak(phrases.join(", ") + " detected");
@@ -761,10 +808,10 @@
     function handleVisionAnalysis(data) {
       const visionText = data.description || data.text;
       if (visionText) {
-        output.innerHTML = `<strong>Vision Analysis:</strong><br>${visionText}`;
+        if (output) output.innerHTML = `[VISION_AI_RESPONSE]<br>${visionText}`;
         speak(visionText);
       } else {
-        output.innerHTML = "<strong>Error:</strong> No analysis received.";
+        if (output) output.innerHTML = "<span style='color:var(--danger)'>[SYS_ERR] No analysis data returned.</span>";
       }
     }
 
@@ -796,8 +843,12 @@
       const config = MODE_CONFIG[newMode];
 
       // Update UI
-      currentModeDisplay.textContent = config.name;
-      modeDescription.textContent = config.description;
+      if (currentModeDisplay) currentModeDisplay.textContent = config.name;
+
+      [pillScan, pillFace, pillAi].forEach(p => p && p.classList.remove('active'));
+      if (newMode === 'scan' || newMode === 'quickscan') pillScan && pillScan.classList.add('active');
+      else if (newMode === 'face') pillFace && pillFace.classList.add('active');
+      else if (newMode === 'vision') pillAi && pillAi.classList.add('active');
 
       console.log(`[MODE] Switched to ${newMode}`);
     }
@@ -1369,16 +1420,7 @@
     // =============================================
     // 11. STATUS INDICATOR UPDATE
     // =============================================
-    function updateStatus(text, active) {
-      if (statusText) statusText.textContent = text;
-      if (statusDot) {
-        if (active) {
-          statusDot.classList.add('active');
-        } else {
-          statusDot.classList.remove('active');
-        }
-      }
-    }
+    // updateStatus is now defined at the top
 
     // =============================================
     // 12. KEYBOARD SHORTCUTS (Optional)
