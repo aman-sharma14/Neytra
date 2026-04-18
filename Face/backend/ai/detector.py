@@ -4,9 +4,12 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 import face_recognition
+import os
 
 CONF_THRESHOLD = 0.5
-MODEL_PATH = "C:\\Users\\anujv\\Desktop\\Programming\\Codes\\python\\Face Recognition\\NeytraN\\Neytra\\models\\bestLatest.pt"  # ← FIXED: Removed extra quotes
+# Resolve models path relative to this script so it works on any device
+current_dir = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.abspath(os.path.join(current_dir, "..", "..", "..", "models", "bestLatest.pt"))
 # Global model instance (loaded once, reused)
 
 yolo_model = None

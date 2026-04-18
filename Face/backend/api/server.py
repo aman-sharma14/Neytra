@@ -64,7 +64,7 @@
 
 # api/server.py
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
@@ -712,26 +712,74 @@ async def enroll_cancel_endpoint():
 #         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/vision")
-async def analyze_scene(file: UploadFile = File(...)):
+async def analyze_scene(file: UploadFile = File(...), prompt: str = Form(None)):
     """
     Endpoint for LLM-based scene analysis.
-    Receives an image, sends it to Gemini, and returns the description.
+    Receives an image, runs object and face detection, and sends the scene plus user prompt to Gemini.
     """
-    print("[API] Received /analyze request")
+    print("[API] Received /api/vision request")
     img_bytes = await file.read()
+    img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+    frame_rgb = np.array(img)
+    frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+
+    # Always run object detection for vision mode
+    scan_results = process_frame_scan(frame)
+    has_person = any(r.get('label', '').lower() in PERSON_LABELS for r in scan_results)
+
+    face_results = []
+    if has_person:
+        print("[VISION] Person detected in scene — running face recognition")
+        face_results = process_frame_face(frame)
+
+    # Build combined scene context for the LLM prompt
+    recognized_names = [r["name"] for r in face_results if r.get("type") == "face" and r.get("name") != "unknown"]
+    unknown_faces = [r for r in face_results if r.get("type") == "face" and r.get("name") == "unknown"]
+    object_labels = [r["label"] for r in scan_results if r.get("type") == "object"]
+
     
-    # Simulate a prompt for now (as per requirements)
-    # In the future, this could come from the client (audio transcription)
-    prompt = "In one short sentence, describe what objects and environment are visible in this scene, focusing on what's useful for navigation and awareness."
-    
-    description = generate_scene_description(img_bytes, prompt)
-    print(f"[API] Sending response: {description[:50]}...")
-    
+    system_prompt = "In one short sentence, describe what objects, people, and the environment are visible in this scene, focusing on what's useful for navigation and awareness."
+
+    extra_context = []
+    if recognized_names:
+        extra_context.append(f"Recognized people: {', '.join(recognized_names)}.")
+    if unknown_faces:
+        extra_context.append(f"There are {len(unknown_faces)} unknown person(s) visible.")
+    if object_labels:
+        unique_objects = sorted(set(object_labels))
+        extra_context.append(f"Detected objects: {', '.join(unique_objects)}.")
+
+    if extra_context:
+        prompt_text = (
+            "You are Neytra, an assistant for visually impaired users. "
+            + " ".join(extra_context)
+            + " User asked: '"
+            + prompt
+            + "'"
+            + "System Prompt : " + system_prompt
+        )
+    else:
+        prompt_text = system_prompt
+
+    print(f"[VISION] Prompt sent to LLM: {prompt_text}")
+    description = generate_scene_description(img_bytes, prompt_text)
+    print(f"[VISION] Description received: {description[:80]}...")
+
+    # Use face_results if available, otherwise return scan-only context
+    scene_results = face_results if face_results else scan_results
+
     return {
         "mode": "vision",
         "status": "success",
+        "prompt": prompt,
         "description": description,
-        "text": description
+        "text": description,
+        "scene_context": {
+            "objects": object_labels,
+            "recognized_people": recognized_names,
+            "unknown_people_count": len(unknown_faces)
+        },
+        "detections": scene_results
     }
 
 
